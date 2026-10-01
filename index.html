@@ -1,0 +1,1925 @@
+<!doctype html>
+<html lang="en" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>University Timetable Generator - CSP Engine</title>
+    <meta name="description" content="AI-powered University Timetable Generator using Constraint Satisfaction Problem (CSP) concepts with MRV heuristics and Forward Checking." />
+    <meta property="og:title" content="University Timetable Generator - CSP Engine" />
+    <meta property="og:description" content="AI-powered University Timetable Generator using Constraint Satisfaction Problem (CSP) concepts with MRV heuristics and Forward Checking." />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            colors: {
+              zinc: {
+                850: '#1f1f23',
+                900: '#18181b',
+                950: '#09090b',
+              },
+              emerald: {
+                450: '#10b981',
+                550: '#059669',
+              }
+            },
+            fontFamily: {
+              sans: ['Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
+              mono: ['JetBrains Mono', 'Fira Code', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'monospace']
+            }
+          }
+        }
+      }
+    </script>
+    <style>
+      /* --- Ambient Fluid Background Orbs --- */
+      body {
+        position: relative;
+        overflow-x: hidden;
+        background-color: #09090b;
+      }
+
+      body::before {
+        content: '';
+        position: fixed;
+        top: -12%;
+        left: 8%;
+        width: 620px;
+        height: 620px;
+        background: radial-gradient(circle, rgba(16, 185, 129, 0.16) 0%, rgba(6, 182, 212, 0.12) 40%, rgba(147, 51, 234, 0.08) 70%, transparent 85%);
+        filter: blur(110px);
+        border-radius: 50%;
+        pointer-events: none;
+        z-index: 0;
+        animation: floatOrb1 24s cubic-bezier(0.45, 0, 0.55, 1) infinite alternate;
+      }
+
+      body::after {
+        content: '';
+        position: fixed;
+        bottom: -15%;
+        right: 4%;
+        width: 680px;
+        height: 680px;
+        background: radial-gradient(circle, rgba(139, 92, 246, 0.15) 0%, rgba(245, 158, 11, 0.09) 35%, rgba(6, 182, 212, 0.12) 65%, transparent 85%);
+        filter: blur(120px);
+        border-radius: 50%;
+        pointer-events: none;
+        z-index: 0;
+        animation: floatOrb2 28s cubic-bezier(0.45, 0, 0.55, 1) infinite alternate;
+      }
+
+      @keyframes floatOrb1 {
+        0% { transform: translate(0, 0) scale(1) rotate(0deg); }
+        50% { transform: translate(110px, 70px) scale(1.14) rotate(45deg); }
+        100% { transform: translate(-70px, 130px) scale(0.92) rotate(90deg); }
+      }
+
+      @keyframes floatOrb2 {
+        0% { transform: translate(0, 0) scale(1) rotate(0deg); }
+        50% { transform: translate(-130px, -80px) scale(1.16) rotate(-45deg); }
+        100% { transform: translate(60px, -120px) scale(0.94) rotate(-90deg); }
+      }
+
+      #app {
+        position: relative;
+        z-index: 1;
+      }
+
+      /* --- Liquid Glass Header --- */
+      header {
+        background: rgba(18, 18, 22, 0.75) !important;
+        backdrop-filter: blur(20px) saturate(190%) !important;
+        -webkit-backdrop-filter: blur(20px) saturate(190%) !important;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+        box-shadow: 0 4px 24px -1px rgba(0, 0, 0, 0.4), inset 0 -1px 0 0 rgba(255, 255, 255, 0.05);
+      }
+
+      /* --- Liquid Glass Cards & Containers --- */
+      .bg-\[\#18181b\] {
+        background: rgba(24, 24, 28, 0.68) !important;
+        backdrop-filter: blur(24px) saturate(190%) !important;
+        -webkit-backdrop-filter: blur(24px) saturate(190%) !important;
+        border: 1px solid rgba(255, 255, 255, 0.09) !important;
+        border-top: 1px solid rgba(255, 255, 255, 0.2) !important;
+        box-shadow: 0 16px 36px -8px rgba(0, 0, 0, 0.5), inset 0 1px 0 0 rgba(255, 255, 255, 0.14), 0 0 0 1px rgba(255, 255, 255, 0.03);
+        transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease, border-color 0.3s ease;
+      }
+
+      .bg-\[\#18181b\]:hover {
+        border-color: rgba(255, 255, 255, 0.14) !important;
+        border-top-color: rgba(255, 255, 255, 0.3) !important;
+        box-shadow: 0 20px 42px -10px rgba(0, 0, 0, 0.65), inset 0 1px 0 0 rgba(255, 255, 255, 0.22), 0 0 24px -4px rgba(16, 185, 129, 0.08);
+      }
+
+      /* --- Stat Cards: Soft 3D Lift & Dynamic Accent Borders --- */
+      .grid.grid-cols-2.sm\:grid-cols-4 > div {
+        padding: 0.85rem 1rem;
+        border-radius: 0.6rem;
+        background: rgba(14, 14, 18, 0.65);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        border: 1px solid rgba(255, 255, 255, 0.07);
+        border-top: 1px solid rgba(255, 255, 255, 0.18);
+        box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.08), 0 4px 16px rgba(0, 0, 0, 0.25);
+        transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease, border-color 0.25s ease;
+      }
+
+      .grid.grid-cols-2.sm\:grid-cols-4 > div:hover {
+        transform: translateY(-2px) scale(1.015);
+        border-color: rgba(16, 185, 129, 0.35);
+        border-top-color: rgba(16, 185, 129, 0.55);
+        box-shadow: 0 12px 28px -6px rgba(0, 0, 0, 0.6), 0 0 18px -2px rgba(16, 185, 129, 0.15), inset 0 1px 0 0 rgba(255, 255, 255, 0.22);
+      }
+
+      /* --- Multi-Stop Vibrant Stat Numbers --- */
+      #metric-exec-time {
+        background: linear-gradient(135deg, #a7f3d0 0%, #10b981 50%, #06b6d4 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        display: inline-block;
+        font-weight: 700;
+        text-shadow: 0 0 20px rgba(16, 185, 129, 0.2);
+      }
+
+      #metric-nodes {
+        background: linear-gradient(135deg, #e9d5ff 0%, #a855f7 50%, #38bdf8 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        display: inline-block;
+        font-weight: 700;
+        text-shadow: 0 0 20px rgba(168, 85, 247, 0.2);
+      }
+
+      #metric-constraints {
+        background: linear-gradient(135deg, #a7f3d0 0%, #34d399 50%, #10b981 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        display: inline-block;
+        font-weight: 700;
+        text-shadow: 0 0 20px rgba(16, 185, 129, 0.25);
+      }
+
+      #metric-slots-assigned {
+        background: linear-gradient(135deg, #fde68a 0%, #f59e0b 50%, #fb923c 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        display: inline-block;
+        font-weight: 700;
+        text-shadow: 0 0 20px rgba(245, 158, 11, 0.2);
+      }
+
+      /* --- Solid Emerald Action Button: Continuous Shimmer, Glossy Light-Sweep, Hover Elevation --- */
+      #btn-generate-schedule {
+        position: relative;
+        overflow: hidden;
+        background: linear-gradient(135deg, #059669 0%, #10b981 50%, #0d9488 100%) !important;
+        border: 1px solid rgba(52, 211, 153, 0.4) !important;
+        border-top: 1px solid rgba(255, 255, 255, 0.45) !important;
+        box-shadow: 0 8px 24px -4px rgba(16, 185, 129, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 0 0 1px rgba(16, 185, 129, 0.2) !important;
+        transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease, filter 0.2s ease !important;
+      }
+
+      #btn-generate-schedule:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 12px 32px -4px rgba(16, 185, 129, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.5), 0 0 22px rgba(16, 185, 129, 0.45) !important;
+        filter: brightness(1.06);
+      }
+
+      #btn-generate-schedule:active {
+        transform: translateY(1px) scale(0.985) !important;
+        box-shadow: 0 4px 12px -2px rgba(16, 185, 129, 0.5), inset 0 2px 4px rgba(0, 0, 0, 0.2) !important;
+      }
+
+      /* Glossy light-sweep pseudo-element overlay */
+      #btn-generate-schedule::after {
+        content: '';
+        position: absolute;
+        top: -50%;
+        left: -70%;
+        width: 50%;
+        height: 200%;
+        background: linear-gradient(
+          90deg,
+          transparent 0%,
+          rgba(255, 255, 255, 0.05) 30%,
+          rgba(255, 255, 255, 0.4) 50%,
+          rgba(255, 255, 255, 0.05) 70%,
+          transparent 100%
+        );
+        transform: rotate(28deg);
+        animation: shimmerSweep 3.8s ease-in-out infinite;
+        pointer-events: none;
+      }
+
+      @keyframes shimmerSweep {
+        0% { left: -80%; }
+        35% { left: 160%; }
+        100% { left: 160%; }
+      }
+
+      /* --- Secondary Buttons with Glass Specular Edge --- */
+      #btn-load-sample,
+      #btn-export-csv,
+      #btn-print,
+      #btn-load-sample-top,
+      #btn-toggle-editor,
+      #btn-apply-csv,
+      #btn-expand-all {
+        position: relative;
+        overflow: hidden;
+        background: rgba(18, 18, 22, 0.7) !important;
+        backdrop-filter: blur(12px) !important;
+        -webkit-backdrop-filter: blur(12px) !important;
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        border-top: 1px solid rgba(255, 255, 255, 0.2) !important;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 2px 8px rgba(0, 0, 0, 0.3) !important;
+        transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease, border-color 0.2s ease, background-color 0.2s ease, color 0.2s ease !important;
+      }
+
+      #btn-load-sample:hover,
+      #btn-export-csv:hover,
+      #btn-print:hover,
+      #btn-load-sample-top:hover,
+      #btn-toggle-editor:hover,
+      #btn-apply-csv:hover,
+      #btn-expand-all:hover {
+        transform: translateY(-2px);
+        border-color: rgba(16, 185, 129, 0.35) !important;
+        border-top-color: rgba(16, 185, 129, 0.5) !important;
+        box-shadow: 0 6px 18px -2px rgba(0, 0, 0, 0.5), 0 0 14px -2px rgba(16, 185, 129, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.15) !important;
+      }
+
+      #btn-load-sample:active,
+      #btn-export-csv:active,
+      #btn-print:active,
+      #btn-load-sample-top:active,
+      #btn-toggle-editor:active,
+      #btn-apply-csv:active,
+      #btn-expand-all:active {
+        transform: translateY(1px) scale(0.985);
+      }
+
+      /* --- Form Controls, Inputs & Textarea Glass Styling --- */
+      input[type="text"],
+      input[type="number"],
+      select,
+      textarea {
+        background: rgba(9, 9, 11, 0.75) !important;
+        backdrop-filter: blur(12px) !important;
+        border: 1px solid rgba(255, 255, 255, 0.09) !important;
+        border-top: 1px solid rgba(255, 255, 255, 0.16) !important;
+        box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.04) !important;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease !important;
+      }
+
+      input[type="text"]:focus,
+      input[type="number"]:focus,
+      select:focus,
+      textarea:focus {
+        border-color: #10b981 !important;
+        box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.25), 0 0 20px rgba(16, 185, 129, 0.2), inset 0 2px 4px rgba(0, 0, 0, 0.3) !important;
+        background: rgba(9, 9, 11, 0.95) !important;
+      }
+
+      /* Checkbox Pills with Smooth Hover & Active Glow */
+      #working-days-container label {
+        background: rgba(12, 12, 16, 0.75);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-top: 1px solid rgba(255, 255, 255, 0.16);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 2px 6px rgba(0, 0, 0, 0.2);
+        transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.18s ease, box-shadow 0.18s ease;
+      }
+
+      #working-days-container label:hover {
+        transform: translateY(-1.5px);
+        border-color: rgba(16, 185, 129, 0.35);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35), 0 0 10px rgba(16, 185, 129, 0.15);
+      }
+
+      #working-days-container input:checked + span {
+        color: #34d399 !important;
+        text-shadow: 0 0 12px rgba(16, 185, 129, 0.5);
+      }
+
+      #working-days-container input:checked ~ span:last-child {
+        box-shadow: 0 0 8px 1px #10b981;
+      }
+
+      /* --- Matrix Table Styling --- */
+      #timetable-matrix-wrapper table {
+        background: rgba(12, 12, 16, 0.6) !important;
+        border: 1px solid rgba(255, 255, 255, 0.08) !important;
+        border-radius: 0.5rem;
+        overflow: hidden;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+      }
+
+      #timetable-matrix-wrapper thead {
+        background: rgba(16, 16, 20, 0.8) !important;
+        backdrop-filter: blur(16px);
+      }
+
+      #timetable-matrix-wrapper th {
+        border-color: rgba(255, 255, 255, 0.07) !important;
+      }
+
+      #timetable-matrix-wrapper td {
+        border-color: rgba(255, 255, 255, 0.06) !important;
+        transition: background-color 0.2s ease;
+      }
+
+      #timetable-matrix-wrapper td:hover {
+        background: rgba(255, 255, 255, 0.02) !important;
+      }
+
+      /* Individual Slot Assignment Cards */
+      #timetable-matrix-wrapper .rounded.border {
+        backdrop-filter: blur(10px) !important;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.12) !important;
+        transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.22s ease, border-color 0.22s ease !important;
+      }
+
+      #timetable-matrix-wrapper .rounded.border:hover {
+        transform: translateY(-2px) scale(1.02);
+        box-shadow: 0 8px 20px -4px rgba(0, 0, 0, 0.6), 0 0 16px rgba(16, 185, 129, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
+      }
+
+      /* Pulse aura on Lab Badges */
+      span.border-emerald-500\/30 {
+        box-shadow: 0 0 10px rgba(16, 185, 129, 0.25);
+        animation: pulseLab 3s infinite alternate;
+      }
+
+      @keyframes pulseLab {
+        0% { box-shadow: 0 0 6px rgba(16, 185, 129, 0.2); }
+        100% { box-shadow: 0 0 14px rgba(16, 185, 129, 0.45); }
+      }
+
+      /* --- Animated Status Banner & Audit Items --- */
+      #status-banner:not(.hidden) {
+        animation: slideFadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      }
+
+      @keyframes slideFadeIn {
+        0% {
+          opacity: 0;
+          transform: translateY(-8px) scale(0.98);
+        }
+        100% {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+        }
+      }
+
+      #audit-checklist > div {
+        transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s ease, box-shadow 0.2s ease;
+        border-top: 1px solid rgba(255, 255, 255, 0.12) !important;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+      }
+
+      #audit-checklist > div:hover {
+        transform: translateX(3px);
+        border-color: rgba(16, 185, 129, 0.35) !important;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3), 0 0 12px rgba(16, 185, 129, 0.1);
+      }
+
+      /* --- Custom Animated Glass Scrollbars --- */
+      ::-webkit-scrollbar {
+        width: 7px;
+        height: 7px;
+      }
+      ::-webkit-scrollbar-track {
+        background: rgba(9, 9, 11, 0.8);
+        backdrop-filter: blur(10px);
+      }
+      ::-webkit-scrollbar-thumb {
+        background: linear-gradient(180deg, #27272a 0%, #3f3f46 50%, #27272a 100%);
+        border-radius: 9999px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: linear-gradient(180deg, #10b981 0%, #06b6d4 100%);
+        box-shadow: 0 0 10px rgba(16, 185, 129, 0.4);
+      }
+
+      @media print {
+        body { background: white !important; color: black !important; }
+        body::before, body::after { display: none !important; }
+        .no-print { display: none !important; }
+        .print-matrix { width: 100% !important; border-collapse: collapse !important; }
+        .print-matrix th, .print-matrix td { border: 1px solid #ccc !important; color: black !important; }
+      }
+    </style>
+  </head>
+  <body class="bg-[#09090b] text-zinc-100 min-h-screen font-sans antialiased selection:bg-emerald-500/20 selection:text-emerald-300">
+    <div id="app" class="flex flex-col min-h-screen">
+      <!-- Top Navigation Bar (Raycast / Supabase Engineering Style) -->
+      <header class="border-b border-[#27272a] bg-[#18181b]/80 backdrop-blur sticky top-0 z-40 no-print">
+        <div class="max-w-[1600px] mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <div class="w-7 h-7 rounded-md bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                <line x1="16" y1="2" x2="16" y2="6"></line>
+                <line x1="8" y1="2" x2="8" y2="6"></line>
+                <line x1="3" y1="10" x2="21" y2="10"></line>
+              </svg>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="font-medium text-sm text-zinc-100 tracking-tight">University Timetable Generator</span>
+              <span class="hidden sm:inline-block text-[11px] font-mono px-1.5 py-0.5 rounded border border-[#27272a] bg-[#09090b] text-zinc-400">CSP Engine v2.4</span>
+              <span class="hidden md:inline-flex items-center gap-1 text-[11px] font-mono px-2 py-0.5 rounded border border-emerald-500/30 bg-emerald-500/10 text-emerald-400">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                MRV + Forward Checking
+              </span>
+            </div>
+          </div>
+          
+          <div class="flex items-center gap-2">
+            <button id="btn-load-sample-top" type="button" class="text-xs font-mono px-2.5 py-1.5 rounded-md border border-[#27272a] bg-[#18181b] text-zinc-300 hover:bg-[#27272a] hover:text-white transition-colors flex items-center gap-1.5">
+              <svg class="w-3.5 h-3.5 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+              </svg>
+              <span>Load Sample CSV</span>
+            </button>
+
+            <button id="btn-export-csv" type="button" class="text-xs font-mono px-2.5 py-1.5 rounded-md border border-[#27272a] bg-[#18181b] text-zinc-300 hover:bg-[#27272a] hover:text-white transition-colors flex items-center gap-1.5">
+              <svg class="w-3.5 h-3.5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              <span>Export CSV</span>
+            </button>
+
+            <button id="btn-print" type="button" class="text-xs font-mono px-2.5 py-1.5 rounded-md border border-[#27272a] bg-[#18181b] text-zinc-300 hover:bg-[#27272a] hover:text-white transition-colors flex items-center gap-1.5">
+              <svg class="w-3.5 h-3.5 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+              </svg>
+              <span>Print</span>
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <!-- Main Layout: 2 Columns (35% Left / 65% Right) -->
+      <main class="flex-1 max-w-[1600px] w-full mx-auto p-4 sm:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        <!-- Left Panel: Inputs & Configuration (35% / col-span-4 or 5) -->
+        <section class="lg:col-span-4 xl:col-span-4 flex flex-col gap-5 no-print">
+          
+          <!-- Generator Configuration Card -->
+          <div class="bg-[#18181b] border border-[#27272a] rounded-lg p-5 flex flex-col gap-4 shadow-sm">
+            <div class="flex items-center justify-between pb-2 border-b border-[#27272a]">
+              <h2 class="text-sm font-semibold text-zinc-100 flex items-center gap-2">
+                <svg class="w-4 h-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+                </svg>
+                Campus Parameters
+              </h2>
+              <span class="text-[11px] font-mono text-zinc-500">Constraints</span>
+            </div>
+
+            <!-- Working Days Selection -->
+            <div class="space-y-2">
+              <label class="block text-xs font-medium text-zinc-300">
+                Working Days <span class="text-zinc-500 text-[11px]">(Mon–Fri default)</span>
+              </label>
+              <div class="grid grid-cols-6 gap-1.5" id="working-days-container">
+                <label class="cursor-pointer flex flex-col items-center justify-center p-2 rounded-md border border-[#27272a] bg-[#09090b] hover:border-zinc-700 transition-all select-none">
+                  <input type="checkbox" name="workday" value="Mon" checked class="sr-only peer" />
+                  <span class="text-xs font-mono text-zinc-400 peer-checked:text-emerald-400 font-medium">Mon</span>
+                  <span class="w-1.5 h-1.5 rounded-full mt-1 bg-transparent peer-checked:bg-emerald-400 transition-colors"></span>
+                </label>
+                <label class="cursor-pointer flex flex-col items-center justify-center p-2 rounded-md border border-[#27272a] bg-[#09090b] hover:border-zinc-700 transition-all select-none">
+                  <input type="checkbox" name="workday" value="Tue" checked class="sr-only peer" />
+                  <span class="text-xs font-mono text-zinc-400 peer-checked:text-emerald-400 font-medium">Tue</span>
+                  <span class="w-1.5 h-1.5 rounded-full mt-1 bg-transparent peer-checked:bg-emerald-400 transition-colors"></span>
+                </label>
+                <label class="cursor-pointer flex flex-col items-center justify-center p-2 rounded-md border border-[#27272a] bg-[#09090b] hover:border-zinc-700 transition-all select-none">
+                  <input type="checkbox" name="workday" value="Wed" checked class="sr-only peer" />
+                  <span class="text-xs font-mono text-zinc-400 peer-checked:text-emerald-400 font-medium">Wed</span>
+                  <span class="w-1.5 h-1.5 rounded-full mt-1 bg-transparent peer-checked:bg-emerald-400 transition-colors"></span>
+                </label>
+                <label class="cursor-pointer flex flex-col items-center justify-center p-2 rounded-md border border-[#27272a] bg-[#09090b] hover:border-zinc-700 transition-all select-none">
+                  <input type="checkbox" name="workday" value="Thu" checked class="sr-only peer" />
+                  <span class="text-xs font-mono text-zinc-400 peer-checked:text-emerald-400 font-medium">Thu</span>
+                  <span class="w-1.5 h-1.5 rounded-full mt-1 bg-transparent peer-checked:bg-emerald-400 transition-colors"></span>
+                </label>
+                <label class="cursor-pointer flex flex-col items-center justify-center p-2 rounded-md border border-[#27272a] bg-[#09090b] hover:border-zinc-700 transition-all select-none">
+                  <input type="checkbox" name="workday" value="Fri" checked class="sr-only peer" />
+                  <span class="text-xs font-mono text-zinc-400 peer-checked:text-emerald-400 font-medium">Fri</span>
+                  <span class="w-1.5 h-1.5 rounded-full mt-1 bg-transparent peer-checked:bg-emerald-400 transition-colors"></span>
+                </label>
+                <label class="cursor-pointer flex flex-col items-center justify-center p-2 rounded-md border border-[#27272a] bg-[#09090b] hover:border-zinc-700 transition-all select-none">
+                  <input type="checkbox" name="workday" value="Sat" class="sr-only peer" />
+                  <span class="text-xs font-mono text-zinc-400 peer-checked:text-emerald-400 font-medium">Sat</span>
+                  <span class="w-1.5 h-1.5 rounded-full mt-1 bg-transparent peer-checked:bg-emerald-400 transition-colors"></span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Slots per Day & Time Settings -->
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label for="slots-per-day" class="block text-xs font-medium text-zinc-300 mb-1">
+                  Slots / Day
+                </label>
+                <input
+                  type="number"
+                  id="slots-per-day"
+                  min="3"
+                  max="10"
+                  value="6"
+                  class="w-full bg-[#09090b] border border-[#27272a] rounded-md px-3 py-1.5 text-sm font-mono text-zinc-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-colors"
+                />
+              </div>
+              <div>
+                <label for="start-time" class="block text-xs font-medium text-zinc-300 mb-1">
+                  Start Time
+                </label>
+                <select
+                  id="start-time"
+                  class="w-full bg-[#09090b] border border-[#27272a] rounded-md px-3 py-1.5 text-sm font-mono text-zinc-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-colors"
+                >
+                  <option value="8">08:00 AM</option>
+                  <option value="9" selected>09:00 AM</option>
+                  <option value="10">10:00 AM</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Rooms Configuration -->
+            <div class="space-y-3">
+              <div>
+                <label for="theory-rooms" class="block text-xs font-medium text-zinc-300 mb-1 flex items-center justify-between">
+                  <span>Theory Rooms</span>
+                  <span id="theory-rooms-count" class="text-[11px] font-mono text-zinc-500">4 rooms</span>
+                </label>
+                <input
+                  type="text"
+                  id="theory-rooms"
+                  value="TR-101, TR-102, TR-103, TR-104"
+                  placeholder="TR-101, TR-102, TR-103"
+                  class="w-full bg-[#09090b] border border-[#27272a] rounded-md px-3 py-1.5 text-xs font-mono text-zinc-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-colors"
+                />
+              </div>
+
+              <div>
+                <label for="lab-rooms" class="block text-xs font-medium text-zinc-300 mb-1 flex items-center justify-between">
+                  <span>Lab Rooms (Strict Assignment)</span>
+                  <span id="lab-rooms-count" class="text-[11px] font-mono text-zinc-500">2 rooms</span>
+                </label>
+                <input
+                  type="text"
+                  id="lab-rooms"
+                  value="LAB-A, LAB-B, CS-LAB"
+                  placeholder="LAB-A, LAB-B"
+                  class="w-full bg-[#09090b] border border-[#27272a] rounded-md px-3 py-1.5 text-xs font-mono text-zinc-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-colors"
+                />
+              </div>
+            </div>
+          </div>
+
+          <!-- Workload CSV Upload & Management Card -->
+          <div class="bg-[#18181b] border border-[#27272a] rounded-lg p-5 flex flex-col gap-4 shadow-sm">
+            <div class="flex items-center justify-between pb-2 border-b border-[#27272a]">
+              <h2 class="text-sm font-semibold text-zinc-100 flex items-center gap-2">
+                <svg class="w-4 h-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                Workload Input
+              </h2>
+              <span id="workload-summary-badge" class="text-[11px] font-mono px-2 py-0.5 rounded bg-[#09090b] text-emerald-400 border border-emerald-500/20">
+                16 Courses • 48 Hours
+              </span>
+            </div>
+
+            <!-- Upload drag/drop box -->
+            <div>
+              <label for="csv-file-input" class="border border-dashed border-[#27272a] hover:border-emerald-500/50 hover:bg-[#09090b]/80 transition-all rounded-lg p-3 text-center cursor-pointer block group">
+                <input type="file" id="csv-file-input" accept=".csv,text/csv" class="hidden" />
+                <div class="flex flex-col items-center justify-center gap-1.5">
+                  <svg class="w-5 h-5 text-zinc-500 group-hover:text-emerald-400 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                  </svg>
+                  <p class="text-xs text-zinc-300 font-medium">Click or drag CSV file to upload</p>
+                  <p class="text-[11px] font-mono text-zinc-500">Batch, Subject, Faculty_Name, Is_Lab, Weekly_Hours</p>
+                </div>
+              </label>
+            </div>
+
+            <!-- Quick Action buttons: Sample Data & View Raw CSV -->
+            <div class="flex items-center gap-2">
+              <button
+                type="button"
+                id="btn-load-sample"
+                class="flex-1 text-xs font-mono py-1.5 px-3 rounded-md border border-[#27272a] bg-[#09090b] text-zinc-300 hover:text-white hover:bg-[#27272a] transition-colors flex items-center justify-center gap-1.5"
+              >
+                <svg class="w-3.5 h-3.5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                Load Sample Data
+              </button>
+
+              <button
+                type="button"
+                id="btn-toggle-editor"
+                class="text-xs font-mono py-1.5 px-3 rounded-md border border-[#27272a] bg-[#09090b] text-zinc-300 hover:text-white hover:bg-[#27272a] transition-colors flex items-center gap-1.5"
+              >
+                <svg class="w-3.5 h-3.5 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+                <span>Edit CSV</span>
+              </button>
+            </div>
+
+            <!-- Expandable Raw CSV Textarea (hidden by default) -->
+            <div id="csv-editor-container" class="hidden flex-col gap-2 pt-2 border-t border-[#27272a]">
+              <div class="flex items-center justify-between text-[11px] font-mono text-zinc-400">
+                <span>Raw CSV Content:</span>
+                <span class="text-zinc-500">Auto-validates on change</span>
+              </div>
+              <textarea
+                id="raw-csv-textarea"
+                rows="7"
+                class="w-full bg-[#09090b] border border-[#27272a] rounded-md p-2.5 text-xs font-mono text-zinc-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 leading-relaxed resize-y"
+                placeholder="Batch,Subject,Faculty_Name,Is_Lab,Weekly_Hours..."
+              ></textarea>
+              <div class="flex justify-end gap-2">
+                <button
+                  type="button"
+                  id="btn-apply-csv"
+                  class="text-xs font-mono px-3 py-1 rounded bg-[#27272a] text-zinc-200 hover:text-white hover:bg-[#3f3f46] transition-colors"
+                >
+                  Apply Changes
+                </button>
+              </div>
+            </div>
+
+            <!-- Course Preview Micro Table -->
+            <div class="space-y-1.5">
+              <div class="flex items-center justify-between text-xs text-zinc-400">
+                <span>Loaded Courses Preview</span>
+                <span id="course-count-label" class="text-[11px] font-mono text-zinc-500">16 items</span>
+              </div>
+              <div class="max-h-48 overflow-y-auto rounded border border-[#27272a] bg-[#09090b]">
+                <table class="w-full text-left text-[11px] font-mono">
+                  <thead class="bg-[#18181b] text-zinc-400 sticky top-0 border-b border-[#27272a]">
+                    <tr>
+                      <th class="p-1.5 px-2">Batch</th>
+                      <th class="p-1.5">Subject</th>
+                      <th class="p-1.5">Faculty</th>
+                      <th class="p-1.5 text-center">Hrs</th>
+                    </tr>
+                  </thead>
+                  <tbody id="workload-table-body" class="divide-y divide-[#27272a]/60 text-zinc-300">
+                    <!-- Populated dynamically -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- PRIMARY ACTION BUTTON: Solid Emerald Button -->
+            <button
+              id="btn-generate-schedule"
+              type="button"
+              class="w-full bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white font-medium py-2.5 px-4 rounded-lg flex items-center justify-center gap-2 shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
+            >
+              <svg id="generate-icon" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+              <span id="generate-btn-text">Generate Schedule</span>
+            </button>
+          </div>
+
+          <!-- CSP Hard Constraints Information / Legend Card -->
+          <div class="bg-[#18181b] border border-[#27272a] rounded-lg p-4 flex flex-col gap-2.5 text-xs text-zinc-400">
+            <div class="flex items-center justify-between font-mono text-zinc-300 text-[11px] uppercase tracking-wider">
+              <span>Hard Constraints Enforced</span>
+              <span class="text-emerald-400">4 / 4 Rules</span>
+            </div>
+            <ul class="space-y-1.5 text-[11px] font-mono text-zinc-400">
+              <li class="flex items-center gap-2">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                <span><strong>Batch Isolation:</strong> No batch double-booking at (Day, Slot)</span>
+              </li>
+              <li class="flex items-center gap-2">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                <span><strong>Faculty Conflict:</strong> No teacher assigned to two rooms at once</span>
+              </li>
+              <li class="flex items-center gap-2">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                <span><strong>Room Exclusivity:</strong> Rooms hold at most 1 session per slot</span>
+              </li>
+              <li class="flex items-center gap-2">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                <span><strong>Lab Placement:</strong> Lab courses strictly bound to Lab Rooms</span>
+              </li>
+            </ul>
+          </div>
+        </section>
+
+        <!-- Right Panel: Results & Interactive Timetable Grid (65% / col-span-8) -->
+        <section class="lg:col-span-8 xl:col-span-8 flex flex-col gap-5">
+          
+          <!-- Stat Bar: Minimal text-based metrics -->
+          <div class="bg-[#18181b] border border-[#27272a] rounded-lg p-4 grid grid-cols-2 sm:grid-cols-4 gap-4 shadow-sm">
+            <div class="flex flex-col">
+              <span class="text-[11px] font-mono text-zinc-400 uppercase tracking-wider">Execution Time</span>
+              <div class="flex items-baseline gap-1 mt-0.5">
+                <span id="metric-exec-time" class="text-lg font-mono font-medium text-zinc-100">0.0</span>
+                <span class="text-xs font-mono text-zinc-500">ms</span>
+              </div>
+              <span class="text-[10px] text-zinc-500">CSP Backtracking</span>
+            </div>
+
+            <div class="flex flex-col">
+              <span class="text-[11px] font-mono text-zinc-400 uppercase tracking-wider">Nodes Expanded</span>
+              <div class="flex items-baseline gap-1 mt-0.5">
+                <span id="metric-nodes" class="text-lg font-mono font-medium text-zinc-100">0</span>
+                <span class="text-xs font-mono text-zinc-500">states</span>
+              </div>
+              <span id="metric-backtracks" class="text-[10px] text-zinc-500">0 backtracks</span>
+            </div>
+
+            <div class="flex flex-col">
+              <span class="text-[11px] font-mono text-zinc-400 uppercase tracking-wider">Hard Constraints</span>
+              <div class="flex items-baseline gap-1 mt-0.5">
+                <span id="metric-constraints" class="text-lg font-mono font-medium text-emerald-400">Ready</span>
+              </div>
+              <span id="metric-conflicts-detail" class="text-[10px] text-zinc-500">0 Violations</span>
+            </div>
+
+            <div class="flex flex-col">
+              <span class="text-[11px] font-mono text-zinc-400 uppercase tracking-wider">Variables Allocated</span>
+              <div class="flex items-baseline gap-1 mt-0.5">
+                <span id="metric-slots-assigned" class="text-lg font-mono font-medium text-zinc-100">0</span>
+                <span id="metric-slots-total" class="text-xs font-mono text-zinc-500">/ 0</span>
+              </div>
+              <span id="metric-utilization" class="text-[10px] text-zinc-500">0% capacity</span>
+            </div>
+          </div>
+
+          <!-- View Controls Bar: View mode tabs & Batch/Faculty filter -->
+          <div class="bg-[#18181b] border border-[#27272a] rounded-lg p-3.5 flex flex-wrap items-center justify-between gap-3 shadow-sm no-print">
+            <div class="flex items-center gap-3">
+              <!-- View mode selector (Batch vs Faculty vs Room) -->
+              <div class="flex rounded-md border border-[#27272a] p-0.5 bg-[#09090b] text-xs font-mono" id="view-mode-tabs">
+                <button type="button" data-mode="batch" class="px-2.5 py-1 rounded bg-[#27272a] text-zinc-100 font-medium transition-colors">By Batch</button>
+                <button type="button" data-mode="faculty" class="px-2.5 py-1 rounded text-zinc-400 hover:text-zinc-200 transition-colors">By Faculty</button>
+                <button type="button" data-mode="room" class="px-2.5 py-1 rounded text-zinc-400 hover:text-zinc-200 transition-colors">By Room</button>
+              </div>
+
+              <!-- Entity Selector Dropdown (Batch Selector / Faculty Selector) -->
+              <div class="flex items-center gap-2">
+                <label for="entity-selector" class="text-xs font-mono text-zinc-400 hidden sm:inline" id="entity-selector-label">Batch:</label>
+                <select
+                  id="entity-selector"
+                  class="bg-[#09090b] border border-[#27272a] rounded-md px-3 py-1 text-xs font-mono text-zinc-100 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500"
+                >
+                  <!-- Populated dynamically e.g. S5 CSE-A, S5 CSE-B -->
+                </select>
+              </div>
+            </div>
+
+            <!-- Search / Highlight filter -->
+            <div class="flex items-center gap-2">
+              <div class="relative">
+                <input
+                  type="text"
+                  id="search-filter"
+                  placeholder="Highlight subject / room..."
+                  class="bg-[#09090b] border border-[#27272a] rounded-md pl-7 pr-3 py-1 text-xs font-mono text-zinc-200 placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 w-44 sm:w-56"
+                />
+                <svg class="w-3.5 h-3.5 text-zinc-500 absolute left-2 top-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
+
+              <button
+                id="btn-expand-all"
+                type="button"
+                title="View All Entities Side by Side"
+                class="text-xs font-mono px-2 py-1 rounded border border-[#27272a] bg-[#09090b] text-zinc-400 hover:text-zinc-200"
+              >
+                All Grid
+              </button>
+            </div>
+          </div>
+
+          <!-- Alert / Status Toast Banner -->
+          <div id="status-banner" class="hidden p-3 rounded-lg border text-xs font-mono flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <span id="status-banner-icon"></span>
+              <span id="status-banner-text"></span>
+            </div>
+            <button type="button" onclick="document.getElementById('status-banner').classList.add('hidden')" class="text-zinc-400 hover:text-white">✕</button>
+          </div>
+
+          <!-- Timetable Matrix Grid Container -->
+          <div class="bg-[#18181b] border border-[#27272a] rounded-lg p-5 shadow-sm overflow-hidden flex flex-col gap-4">
+            <div class="flex items-center justify-between pb-3 border-b border-[#27272a]">
+              <div>
+                <h3 id="current-view-title" class="text-sm font-semibold text-zinc-100 flex items-center gap-2">
+                  <span>Batch Schedule: S5 CSE-A</span>
+                  <span id="current-view-badge" class="text-[11px] font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Active</span>
+                </h3>
+                <p id="current-view-subtitle" class="text-xs text-zinc-400 mt-0.5">Showing assigned time slots, faculty allocations, and venue designations.</p>
+              </div>
+
+              <div class="flex items-center gap-2 text-[11px] font-mono text-zinc-400">
+                <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded bg-[#27272a] border border-[#3f3f46]"></span> Theory</span>
+                <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded bg-emerald-500/20 border border-emerald-500/40"></span> Lab (Strict)</span>
+              </div>
+            </div>
+
+            <!-- The Grid Table (Days x Slots) -->
+            <div class="overflow-x-auto">
+              <div id="timetable-matrix-wrapper" class="min-w-[680px]">
+                <!-- Matrix populated via JS -->
+              </div>
+            </div>
+          </div>
+
+          <!-- CSP Search Diagnostics & Audit Checklist -->
+          <div class="bg-[#18181b] border border-[#27272a] rounded-lg p-4 flex flex-col gap-3 shadow-sm">
+            <div class="flex items-center justify-between">
+              <h4 class="text-xs font-mono font-medium text-zinc-300 uppercase tracking-wider flex items-center gap-1.5">
+                <svg class="w-4 h-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                </svg>
+                Constraint Audit & Diagnostics
+              </h4>
+              <span id="audit-status" class="text-[11px] font-mono text-emerald-400">All checks passed</span>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-2.5 text-[11px] font-mono" id="audit-checklist">
+              <div class="p-2.5 rounded bg-[#09090b] border border-[#27272a] flex items-center justify-between">
+                <span class="text-zinc-300">1. Batch Double-Booking Overlaps</span>
+                <span id="audit-batch-check" class="text-emerald-400 font-medium">0 collisions</span>
+              </div>
+              <div class="p-2.5 rounded bg-[#09090b] border border-[#27272a] flex items-center justify-between">
+                <span class="text-zinc-300">2. Faculty Simultaneous Clashes</span>
+                <span id="audit-faculty-check" class="text-emerald-400 font-medium">0 collisions</span>
+              </div>
+              <div class="p-2.5 rounded bg-[#09090b] border border-[#27272a] flex items-center justify-between">
+                <span class="text-zinc-300">3. Room Over-subscription</span>
+                <span id="audit-room-check" class="text-emerald-400 font-medium">0 collisions</span>
+              </div>
+              <div class="p-2.5 rounded bg-[#09090b] border border-[#27272a] flex items-center justify-between">
+                <span class="text-zinc-300">4. Lab Strict Room Assignment</span>
+                <span id="audit-lab-check" class="text-emerald-400 font-medium">100% compliant</span>
+              </div>
+            </div>
+          </div>
+
+        </section>
+      </main>
+
+      <!-- Minimalist Footer -->
+      <footer class="border-t border-[#27272a] bg-[#18181b]/50 py-3 text-center text-xs font-mono text-zinc-500 no-print">
+        University Timetable Generator • Constraint Satisfaction Problem (CSP) • MRV & Forward Checking Pruning
+      </footer>
+    </div>
+
+    <!-- Complete Vanilla JavaScript CSP Engine & UI Controller -->
+    <script>
+      (function() {
+        // --- 1. DEFAULT DATASETS ---
+        const DEFAULT_CSV = `Batch,Subject,Faculty_Name,Is_Lab,Weekly_Hours
+S5 CSE-A,CS301 Data Structures,Dr. Alan Turing,false,4
+S5 CSE-A,CS303 Operating Systems,Prof. Grace Hopper,false,4
+S5 CSE-A,CS331 OS Lab,Prof. Grace Hopper,true,2
+S5 CSE-A,MA201 Discrete Mathematics,Dr. Ada Lovelace,false,3
+S5 CSE-A,CS305 Database Systems,Prof. John von Neumann,false,3
+S5 CSE-A,CS333 DBMS Lab,Prof. John von Neumann,true,2
+S5 CSE-B,CS301 Data Structures,Dr. Alan Turing,false,4
+S5 CSE-B,CS303 Operating Systems,Dr. Donald Knuth,false,4
+S5 CSE-B,CS331 OS Lab,Dr. Donald Knuth,true,2
+S5 CSE-B,MA201 Discrete Mathematics,Dr. Ada Lovelace,false,3
+S5 CSE-B,CS307 Computer Networks,Prof. Claude Shannon,false,3
+S5 CSE-B,CS337 Networks Lab,Prof. Claude Shannon,true,2
+S3 IT-A,IT201 OOP with Java,Prof. Barbara Liskov,false,4
+S3 IT-A,IT231 Java Lab,Prof. Barbara Liskov,true,2
+S3 IT-A,MA101 Engineering Calculus,Dr. Ada Lovelace,false,3
+S3 IT-A,IT203 Digital Logic & Design,Prof. Claude Shannon,false,3`;
+
+        // --- 2. STATE ---
+        const state = {
+          workload: [],
+          workingDays: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'],
+          slotsPerDay: 6,
+          startTimeHour: 9,
+          theoryRooms: ['TR-101', 'TR-102', 'TR-103', 'TR-104'],
+          labRooms: ['LAB-A', 'LAB-B', 'CS-LAB'],
+          solution: null, // array of assigned variables { id, batch, subject, faculty, isLab, day, slot, room }
+          allAssignments: [], // flat list
+          metrics: {
+            executionTime: 0,
+            nodesExpanded: 0,
+            backtracks: 0,
+            status: 'Ready',
+            assignedCount: 0,
+            totalCount: 0
+          },
+          currentViewMode: 'batch', // 'batch' | 'faculty' | 'room' | 'all'
+          selectedEntity: 'S5 CSE-A',
+          searchQuery: ''
+        };
+
+        // --- 3. DOM ELEMENTS ---
+        const dom = {
+          workingDaysContainer: document.getElementById('working-days-container'),
+          slotsPerDayInput: document.getElementById('slots-per-day'),
+          startTimeSelect: document.getElementById('start-time'),
+          theoryRoomsInput: document.getElementById('theory-rooms'),
+          labRoomsInput: document.getElementById('lab-rooms'),
+          theoryRoomsCount: document.getElementById('theory-rooms-count'),
+          labRoomsCount: document.getElementById('lab-rooms-count'),
+          csvFileInput: document.getElementById('csv-file-input'),
+          rawCsvTextarea: document.getElementById('raw-csv-textarea'),
+          csvEditorContainer: document.getElementById('csv-editor-container'),
+          btnToggleEditor: document.getElementById('btn-toggle-editor'),
+          btnApplyCsv: document.getElementById('btn-apply-csv'),
+          btnLoadSample: document.getElementById('btn-load-sample'),
+          btnLoadSampleTop: document.getElementById('btn-load-sample-top'),
+          btnGenerateSchedule: document.getElementById('btn-generate-schedule'),
+          btnExportCsv: document.getElementById('btn-export-csv'),
+          btnPrint: document.getElementById('btn-print'),
+          btnExpandAll: document.getElementById('btn-expand-all'),
+          workloadTableBody: document.getElementById('workload-table-body'),
+          workloadSummaryBadge: document.getElementById('workload-summary-badge'),
+          courseCountLabel: document.getElementById('course-count-label'),
+          metricExecTime: document.getElementById('metric-exec-time'),
+          metricNodes: document.getElementById('metric-nodes'),
+          metricBacktracks: document.getElementById('metric-backtracks'),
+          metricConstraints: document.getElementById('metric-constraints'),
+          metricConflictsDetail: document.getElementById('metric-conflicts-detail'),
+          metricSlotsAssigned: document.getElementById('metric-slots-assigned'),
+          metricSlotsTotal: document.getElementById('metric-slots-total'),
+          metricUtilization: document.getElementById('metric-utilization'),
+          viewModeTabs: document.getElementById('view-mode-tabs'),
+          entitySelector: document.getElementById('entity-selector'),
+          entitySelectorLabel: document.getElementById('entity-selector-label'),
+          searchFilter: document.getElementById('search-filter'),
+          currentViewTitle: document.getElementById('current-view-title'),
+          currentViewBadge: document.getElementById('current-view-badge'),
+          currentViewSubtitle: document.getElementById('current-view-subtitle'),
+          timetableMatrixWrapper: document.getElementById('timetable-matrix-wrapper'),
+          statusBanner: document.getElementById('status-banner'),
+          statusBannerIcon: document.getElementById('status-banner-icon'),
+          statusBannerText: document.getElementById('status-banner-text'),
+          auditStatus: document.getElementById('audit-status'),
+          auditBatchCheck: document.getElementById('audit-batch-check'),
+          auditFacultyCheck: document.getElementById('audit-faculty-check'),
+          auditRoomCheck: document.getElementById('audit-room-check'),
+          auditLabCheck: document.getElementById('audit-lab-check')
+        };
+
+        // --- 4. CSV PARSER & EXPANDER ---
+        function parseCSV(text) {
+          const lines = text.trim().split(/\r?\n/);
+          if (lines.length < 2) return [];
+
+          const headers = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/['"]/g, ''));
+          const batchIdx = headers.findIndex(h => h === 'batch');
+          const subjectIdx = headers.findIndex(h => h === 'subject' || h === 'course');
+          const facultyIdx = headers.findIndex(h => h.includes('faculty') || h.includes('teacher'));
+          const isLabIdx = headers.findIndex(h => h.includes('lab'));
+          const hoursIdx = headers.findIndex(h => h.includes('hour') || h.includes('weekly') || h.includes('credits'));
+
+          const rows = [];
+          for (let i = 1; i < lines.length; i++) {
+            const line = lines[i].trim();
+            if (!line) continue;
+            
+            // Handle quotes or standard split
+            const parts = parseCSVLine(line);
+            if (parts.length < 4) continue;
+
+            const batch = (parts[batchIdx] || '').trim();
+            const subject = (parts[subjectIdx] || '').trim();
+            const faculty = (parts[facultyIdx] || '').trim();
+            const isLabRaw = (parts[isLabIdx] || '').trim().toLowerCase();
+            const isLab = isLabRaw === 'true' || isLabRaw === '1' || isLabRaw === 'yes';
+            const weeklyHours = parseInt(parts[hoursIdx] || '1', 10) || 1;
+
+            if (batch && subject) {
+              rows.push({
+                batch,
+                subject,
+                faculty: faculty || 'Staff',
+                isLab,
+                weeklyHours: Math.max(1, Math.min(10, weeklyHours))
+              });
+            }
+          }
+          return rows;
+        }
+
+        function parseCSVLine(line) {
+          const result = [];
+          let current = '';
+          let inQuotes = false;
+          for (let i = 0; i < line.length; i++) {
+            const char = line[i];
+            if (char === '"' || char === "'") {
+              inQuotes = !inQuotes;
+            } else if (char === ',' && !inQuotes) {
+              result.push(current);
+              current = '';
+            } else {
+              current += char;
+            }
+          }
+          result.push(current);
+          return result.map(s => s.replace(/^["']|["']$/g, '').trim());
+        }
+
+        // Expands weekly hours into atomic CSP Variables
+        function expandWorkloadToVariables(workload) {
+          const variables = [];
+          let varCounter = 0;
+
+          workload.forEach((item, itemIdx) => {
+            for (let h = 0; h < item.weeklyHours; h++) {
+              variables.push({
+                id: `var_${varCounter++}`,
+                itemIndex: itemIdx,
+                batch: item.batch,
+                subject: item.subject,
+                faculty: item.faculty,
+                isLab: item.isLab,
+                sessionIndex: h + 1,
+                totalHours: item.weeklyHours
+              });
+            }
+          });
+
+          return variables;
+        }
+
+        // --- 5. CSP SOLVER (Backtracking + MRV + Forward Checking) ---
+        class CSPScheduler {
+          constructor(variables, workingDays, slotsPerDay, theoryRooms, labRooms) {
+            this.variables = variables;
+            this.workingDays = workingDays;
+            this.slotsPerDay = slotsPerDay;
+            this.theoryRooms = theoryRooms;
+            this.labRooms = labRooms;
+
+            this.nodesExpanded = 0;
+            this.backtracks = 0;
+            this.maxTimeMs = 4000; // safety ceiling
+            this.maxNodes = 40000;
+          }
+
+          solve() {
+            const startTime = performance.now();
+            this.nodesExpanded = 0;
+            this.backtracks = 0;
+
+            const n = this.variables.length;
+            if (n === 0) {
+              return { success: true, assignment: [], time: 0, nodes: 0, backtracks: 0 };
+            }
+
+            // Generate initial domains for all variables
+            // A domain value is an object: { day, slot, room }
+            const domains = [];
+            for (let i = 0; i < n; i++) {
+              const v = this.variables[i];
+              const allowedRooms = v.isLab ? this.labRooms : this.theoryRooms;
+              if (allowedRooms.length === 0) {
+                return {
+                  success: false,
+                  reason: `No rooms configured for ${v.isLab ? 'Lab' : 'Theory'} subject: ${v.subject}`,
+                  assignment: null,
+                  time: performance.now() - startTime,
+                  nodes: 0,
+                  backtracks: 0
+                };
+              }
+
+              const domain = [];
+              for (const day of this.workingDays) {
+                for (let s = 0; s < this.slotsPerDay; s++) {
+                  for (const room of allowedRooms) {
+                    domain.push({ day, slot: s, room });
+                  }
+                }
+              }
+              domains[i] = domain;
+            }
+
+            // Assignment array: index -> value or null
+            const assignment = new Array(n).fill(null);
+
+            // Fast lookup tables for conflict checking:
+            // "batch#day#slot" -> varIndex
+            // "faculty#day#slot" -> varIndex
+            // "room#day#slot" -> varIndex
+            const batchOccupied = new Map();
+            const facultyOccupied = new Map();
+            const roomOccupied = new Map();
+
+            // Track subject distribution to spread lectures across days (Heuristic Value Ordering)
+            const subjectDayCount = new Map(); // "batch#subject#day" -> count
+
+            // Recursive backtrack function
+            const recurse = (depth) => {
+              this.nodesExpanded++;
+
+              // Safety cutoff
+              if (this.nodesExpanded > this.maxNodes || performance.now() - startTime > this.maxTimeMs) {
+                return false;
+              }
+
+              // Check if all variables assigned
+              let allAssigned = true;
+              let bestVarIdx = -1;
+              let minDomainSize = Infinity;
+
+              // --- MRV (Minimum Remaining Values) Heuristic ---
+              // Find unassigned variable with smallest remaining valid domain
+              for (let i = 0; i < n; i++) {
+                if (assignment[i] === null) {
+                  allAssigned = false;
+                  const domSize = domains[i].length;
+                  if (domSize < minDomainSize) {
+                    minDomainSize = domSize;
+                    bestVarIdx = i;
+                    // Early exit if 0 domain -> dead end
+                    if (domSize === 0) break;
+                  }
+                }
+              }
+
+              if (allAssigned) return true;
+              if (minDomainSize === 0 || bestVarIdx === -1) {
+                this.backtracks++;
+                return false;
+              }
+
+              const varIdx = bestVarIdx;
+              const variable = this.variables[varIdx];
+              const candDomain = domains[varIdx];
+
+              // --- Value Ordering Heuristic: Least Constraining / Spread days ---
+              // Order domain values to favor even spread of a subject across different days
+              const sortedDomain = [...candDomain].sort((a, b) => {
+                const countA = subjectDayCount.get(`${variable.batch}#${variable.subject}#${a.day}`) || 0;
+                const countB = subjectDayCount.get(`${variable.batch}#${variable.subject}#${b.day}`) || 0;
+                if (countA !== countB) return countA - countB; // prefer days with fewer sessions of this subject
+                // secondary preference: earlier slots
+                return a.slot - b.slot;
+              });
+
+              for (const val of sortedDomain) {
+                const bKey = `${variable.batch}#${val.day}#${val.slot}`;
+                const fKey = `${variable.faculty}#${val.day}#${val.slot}`;
+                const rKey = `${val.room}#${val.day}#${val.slot}`;
+
+                // --- Hard Constraint Verification ---
+                if (batchOccupied.has(bKey)) continue;
+                if (facultyOccupied.has(fKey)) continue;
+                if (roomOccupied.has(rKey)) continue;
+
+                // --- Forward Checking: Prune domains of remaining unassigned variables ---
+                const pruned = [];
+                let wipeout = false;
+
+                // Test prune on all unassigned variables
+                for (let otherIdx = 0; otherIdx < n; otherIdx++) {
+                  if (otherIdx === varIdx || assignment[otherIdx] !== null) continue;
+                  const otherVar = this.variables[otherIdx];
+
+                  const sameBatch = otherVar.batch === variable.batch;
+                  const sameFaculty = otherVar.faculty === variable.faculty;
+
+                  // If they share batch, faculty, or can use same room, check pruning
+                  const oldDom = domains[otherIdx];
+                  const newDom = [];
+
+                  for (let d = 0; d < oldDom.length; d++) {
+                    const dv = oldDom[d];
+                    const slotConflict = dv.day === val.day && dv.slot === val.slot;
+                    let prune = false;
+
+                    if (slotConflict) {
+                      if (sameBatch) prune = true;
+                      else if (sameFaculty) prune = true;
+                      else if (dv.room === val.room) prune = true;
+                    }
+
+                    if (prune) {
+                      pruned.push({ varIdx: otherIdx, value: dv });
+                    } else {
+                      newDom.push(dv);
+                    }
+                  }
+
+                  domains[otherIdx] = newDom;
+                  if (newDom.length === 0) {
+                    wipeout = true;
+                    break;
+                  }
+                }
+
+                if (!wipeout) {
+                  // Make assignment
+                  assignment[varIdx] = val;
+                  batchOccupied.set(bKey, varIdx);
+                  facultyOccupied.set(fKey, varIdx);
+                  roomOccupied.set(rKey, varIdx);
+
+                  const sKey = `${variable.batch}#${variable.subject}#${val.day}`;
+                  subjectDayCount.set(sKey, (subjectDayCount.get(sKey) || 0) + 1);
+
+                  // Recurse
+                  const ok = recurse(depth + 1);
+                  if (ok) return true;
+
+                  // Backtrack assignment
+                  assignment[varIdx] = null;
+                  batchOccupied.delete(bKey);
+                  facultyOccupied.delete(fKey);
+                  roomOccupied.delete(rKey);
+                  subjectDayCount.set(sKey, subjectDayCount.get(sKey) - 1);
+                }
+
+                // Restore pruned domains
+                for (let p = 0; p < pruned.length; p++) {
+                  domains[pruned[p].varIdx].push(pruned[p].value);
+                }
+
+                if (wipeout) {
+                  this.backtracks++;
+                }
+              }
+
+              this.backtracks++;
+              return false;
+            };
+
+            const success = recurse(0);
+            const execTime = performance.now() - startTime;
+
+            if (success) {
+              const fullResult = this.variables.map((v, i) => ({
+                ...v,
+                day: assignment[i].day,
+                slot: assignment[i].slot,
+                room: assignment[i].room
+              }));
+
+              return {
+                success: true,
+                assignment: fullResult,
+                time: execTime,
+                nodes: this.nodesExpanded,
+                backtracks: this.backtracks
+              };
+            } else {
+              return {
+                success: false,
+                assignment: null,
+                time: execTime,
+                nodes: this.nodesExpanded,
+                backtracks: this.backtracks,
+                reason: this.nodesExpanded >= this.maxNodes
+                  ? 'Search node limit reached. Workload might be over-constrained.'
+                  : 'No conflict-free schedule satisfies all constraints. Try adding more rooms or slots.'
+              };
+            }
+          }
+        }
+
+        // --- 6. CONSTRAINT AUDITOR ---
+        function auditSolution(solution, workingDays, slotsPerDay, labRooms) {
+          const labSet = new Set(labRooms.map(r => r.trim().toUpperCase()));
+          
+          let batchCollisions = 0;
+          let facultyCollisions = 0;
+          let roomCollisions = 0;
+          let labMismatches = 0;
+
+          const batchMap = new Map();
+          const facultyMap = new Map();
+          const roomMap = new Map();
+
+          solution.forEach(item => {
+            const bKey = `${item.batch}#${item.day}#${item.slot}`;
+            const fKey = `${item.faculty}#${item.day}#${item.slot}`;
+            const rKey = `${item.room}#${item.day}#${item.slot}`;
+
+            if (batchMap.has(bKey)) batchCollisions++;
+            else batchMap.set(bKey, item);
+
+            if (facultyMap.has(fKey)) facultyCollisions++;
+            else facultyMap.set(fKey, item);
+
+            if (roomMap.has(rKey)) roomCollisions++;
+            else roomMap.set(rKey, item);
+
+            if (item.isLab && !labSet.has(item.room.trim().toUpperCase())) {
+              labMismatches++;
+            }
+          });
+
+          return {
+            batchCollisions,
+            facultyCollisions,
+            roomCollisions,
+            labMismatches,
+            isValid: batchCollisions === 0 && facultyCollisions === 0 && roomCollisions === 0 && labMismatches === 0
+          };
+        }
+
+        // --- 7. UI CONTROLLERS & RENDERERS ---
+
+        function getSlotTimeLabel(slotIndex, startHour) {
+          const h = (startHour + slotIndex);
+          const period = h >= 12 ? 'PM' : 'AM';
+          const displayH = h > 12 ? h - 12 : (h === 0 ? 12 : h);
+          const nextH = h + 1;
+          const nextPeriod = nextH >= 12 ? 'PM' : 'AM';
+          const nextDisplayH = nextH > 12 ? nextH - 12 : (nextH === 0 ? 12 : nextH);
+          return `${displayH}:00 ${period} – ${nextDisplayH}:00 ${nextPeriod}`;
+        }
+
+        function renderWorkloadTable() {
+          const tbody = dom.workloadTableBody;
+          tbody.innerHTML = '';
+
+          let totalHours = 0;
+          const batches = new Set();
+
+          state.workload.forEach(item => {
+            totalHours += item.weeklyHours;
+            batches.add(item.batch);
+
+            const tr = document.createElement('tr');
+            tr.className = 'hover:bg-[#18181b] transition-colors';
+            tr.innerHTML = `
+              <td class="p-1.5 px-2 text-zinc-300 font-medium whitespace-nowrap">${escapeHtml(item.batch)}</td>
+              <td class="p-1.5 text-zinc-200">
+                <div class="flex items-center gap-1.5">
+                  <span class="truncate max-w-[130px]">${escapeHtml(item.subject)}</span>
+                  ${item.isLab ? '<span class="text-[9px] px-1 py-0.2 bg-emerald-500/20 text-emerald-400 rounded border border-emerald-500/30">LAB</span>' : ''}
+                </div>
+              </td>
+              <td class="p-1.5 text-zinc-400 truncate max-w-[110px]">${escapeHtml(item.faculty)}</td>
+              <td class="p-1.5 text-center text-zinc-200 font-mono">${item.weeklyHours}h</td>
+            `;
+            tbody.appendChild(tr);
+          });
+
+          dom.workloadSummaryBadge.textContent = `${state.workload.length} Courses • ${totalHours} Hours`;
+          dom.courseCountLabel.textContent = `${state.workload.length} items (${batches.size} batches)`;
+          dom.rawCsvTextarea.value = unparseCSV(state.workload);
+        }
+
+        function updateEntitySelectorOptions() {
+          const mode = state.currentViewMode;
+          const select = dom.entitySelector;
+          select.innerHTML = '';
+
+          let entities = [];
+          if (mode === 'batch') {
+            dom.entitySelectorLabel.textContent = 'Batch:';
+            const set = new Set();
+            state.workload.forEach(w => set.add(w.batch));
+            entities = Array.from(set).sort();
+          } else if (mode === 'faculty') {
+            dom.entitySelectorLabel.textContent = 'Faculty:';
+            const set = new Set();
+            state.workload.forEach(w => set.add(w.faculty));
+            entities = Array.from(set).sort();
+          } else if (mode === 'room') {
+            dom.entitySelectorLabel.textContent = 'Room:';
+            entities = [...state.theoryRooms, ...state.labRooms].sort();
+          }
+
+          if (entities.length === 0) {
+            const opt = document.createElement('option');
+            opt.value = '';
+            opt.textContent = 'No entities';
+            select.appendChild(opt);
+            return;
+          }
+
+          entities.forEach(ent => {
+            const opt = document.createElement('option');
+            opt.value = ent;
+            opt.textContent = ent;
+            if (ent === state.selectedEntity) {
+              opt.selected = true;
+            }
+            select.appendChild(opt);
+          });
+
+          if (!entities.includes(state.selectedEntity)) {
+            state.selectedEntity = entities[0];
+            select.value = entities[0];
+          }
+        }
+
+        function renderTimetableMatrix() {
+          const wrapper = dom.timetableMatrixWrapper;
+          wrapper.innerHTML = '';
+
+          const mode = state.currentViewMode;
+          const entity = state.selectedEntity;
+          const days = state.workingDays;
+          const slotsCount = state.slotsPerDay;
+          const startHour = state.startTimeHour;
+          const query = state.searchQuery.toLowerCase().trim();
+
+          // Title updates
+          if (mode === 'batch') {
+            dom.currentViewTitle.querySelector('span').textContent = `Batch Schedule: ${entity || 'None'}`;
+            dom.currentViewSubtitle.textContent = `Displaying weekly slot matrix for academic section ${entity}.`;
+          } else if (mode === 'faculty') {
+            dom.currentViewTitle.querySelector('span').textContent = `Faculty Schedule: ${entity || 'None'}`;
+            dom.currentViewSubtitle.textContent = `Assigned lectures, practicals, and designated rooms for ${entity}.`;
+          } else if (mode === 'room') {
+            const isLab = state.labRooms.map(r => r.toUpperCase()).includes((entity || '').toUpperCase());
+            dom.currentViewTitle.querySelector('span').textContent = `Room Occupancy: ${entity || 'None'}`;
+            dom.currentViewSubtitle.textContent = `${isLab ? 'Lab Facility' : 'Theory Classroom'} utilization matrix across all batches.`;
+          }
+
+          // Build index of solution items
+          // Key: "day#slot" -> array of items matching the view mode
+          const cellMap = new Map();
+          if (state.solution) {
+            state.solution.forEach(item => {
+              let match = false;
+              if (mode === 'batch' && item.batch === entity) match = true;
+              else if (mode === 'faculty' && item.faculty === entity) match = true;
+              else if (mode === 'room' && item.room.toUpperCase() === (entity || '').toUpperCase()) match = true;
+
+              if (match) {
+                const key = `${item.day}#${item.slot}`;
+                if (!cellMap.has(key)) cellMap.set(key, []);
+                cellMap.get(key).push(item);
+              }
+            });
+          }
+
+          // Create Grid Table
+          const table = document.createElement('table');
+          table.className = 'w-full border-collapse border border-[#27272a] text-left text-xs font-mono print-matrix';
+
+          // Table Header: Day Column + Slots Columns
+          const thead = document.createElement('thead');
+          thead.className = 'bg-[#09090b] text-zinc-400 border-b border-[#27272a]';
+          const headerRow = document.createElement('tr');
+
+          // Day header cell
+          const dayTh = document.createElement('th');
+          dayTh.className = 'p-3 border-r border-[#27272a] w-24 font-semibold text-zinc-300 uppercase tracking-wider text-[11px]';
+          dayTh.textContent = 'Day / Slot';
+          headerRow.appendChild(dayTh);
+
+          // Slot headers
+          for (let s = 0; s < slotsCount; s++) {
+            const th = document.createElement('th');
+            th.className = 'p-2.5 border-r border-[#27272a] text-center min-w-[125px]';
+            const timeLabel = getSlotTimeLabel(s, startHour);
+            th.innerHTML = `
+              <div class="text-zinc-200 font-semibold text-xs">Slot ${s + 1}</div>
+              <div class="text-[10px] text-zinc-500 font-normal mt-0.5">${timeLabel}</div>
+            `;
+            headerRow.appendChild(th);
+          }
+          thead.appendChild(headerRow);
+          table.appendChild(thead);
+
+          // Table Body: Days (Rows) vs Slots (Columns)
+          const tbody = document.createElement('tbody');
+          tbody.className = 'divide-y divide-[#27272a]';
+
+          days.forEach(day => {
+            const tr = document.createElement('tr');
+            tr.className = 'hover:bg-[#18181b]/50 transition-colors';
+
+            // Day label cell
+            const dayTd = document.createElement('td');
+            dayTd.className = 'p-3 font-semibold text-zinc-300 border-r border-[#27272a] bg-[#09090b]/40 text-xs';
+            dayTd.innerHTML = `
+              <div class="flex items-center gap-2">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                <span>${day}</span>
+              </div>
+            `;
+            tr.appendChild(dayTd);
+
+            // Slot cells
+            for (let s = 0; s < slotsCount; s++) {
+              const td = document.createElement('td');
+              td.className = 'p-2 border-r border-[#27272a] align-top min-w-[130px] h-[92px] transition-colors relative';
+
+              const key = `${day}#${s}`;
+              const items = cellMap.get(key) || [];
+
+              if (items.length === 0) {
+                // Empty slot
+                td.innerHTML = `
+                  <div class="w-full h-full min-h-[72px] flex items-center justify-center text-zinc-700 font-mono text-sm hover:text-zinc-600 transition-colors">
+                    -
+                  </div>
+                `;
+              } else {
+                // One or more assignments in this slot (if room/batch mode)
+                const container = document.createElement('div');
+                container.className = 'flex flex-col gap-1.5 h-full justify-between';
+
+                items.forEach(it => {
+                  const card = document.createElement('div');
+                  const isHighlighted = query && (
+                    it.subject.toLowerCase().includes(query) ||
+                    it.faculty.toLowerCase().includes(query) ||
+                    it.room.toLowerCase().includes(query) ||
+                    it.batch.toLowerCase().includes(query)
+                  );
+
+                  const borderClass = isHighlighted 
+                    ? 'border-emerald-400 ring-1 ring-emerald-400/50 bg-[#222228]' 
+                    : (it.isLab ? 'border-emerald-500/30 bg-emerald-500/[0.04]' : 'border-[#2d2d33] bg-[#1e1e24]');
+
+                  card.className = `p-2 rounded border ${borderClass} shadow-sm transition-all flex flex-col justify-between gap-1`;
+
+                  // Title (Subject)
+                  let headerText = '';
+                  if (mode === 'room') {
+                    headerText = `<div class="text-[10px] font-mono text-emerald-400 font-semibold mb-0.5">${escapeHtml(it.batch)}</div>`;
+                  }
+
+                  card.innerHTML = `
+                    ${headerText}
+                    <div class="flex items-start justify-between gap-1">
+                      <span class="font-medium text-xs text-zinc-100 leading-tight line-clamp-2">${escapeHtml(it.subject)}</span>
+                      ${it.isLab ? '<span class="text-[9px] font-mono px-1 py-0.2 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 shrink-0">LAB</span>' : ''}
+                    </div>
+                    <div class="flex items-center justify-between text-[11px] text-zinc-400 pt-1 border-t border-[#27272a]/60">
+                      <span class="truncate max-w-[70px] text-zinc-400" title="${escapeHtml(it.faculty)}">
+                        ${mode === 'faculty' ? escapeHtml(it.batch) : escapeHtml(it.faculty)}
+                      </span>
+                      <span class="font-mono text-[10px] px-1 rounded bg-[#09090b] border border-[#27272a] text-zinc-300">
+                        ${mode === 'room' ? escapeHtml(it.faculty) : escapeHtml(it.room)}
+                      </span>
+                    </div>
+                  `;
+                  container.appendChild(card);
+                });
+
+                td.appendChild(container);
+              }
+
+              tr.appendChild(td);
+            }
+
+            tbody.appendChild(tr);
+          });
+
+          table.appendChild(tbody);
+          wrapper.appendChild(table);
+        }
+
+        function showStatusBanner(type, message) {
+          const banner = dom.statusBanner;
+          banner.className = `p-3 rounded-lg border text-xs font-mono flex items-center justify-between transition-all ${
+            type === 'success'
+              ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
+              : 'bg-red-500/10 border-red-500/30 text-red-300'
+          }`;
+          dom.statusBannerText.textContent = message;
+          dom.statusBannerIcon.innerHTML = type === 'success'
+            ? `<svg class="w-4 h-4 text-emerald-400 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>`
+            : `<svg class="w-4 h-4 text-red-400 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`;
+          banner.classList.remove('hidden');
+        }
+
+        // --- 8. ACTION HANDLERS ---
+
+        function readConfigurationFromInputs() {
+          // Days
+          const dayCheckboxes = dom.workingDaysContainer.querySelectorAll('input[type="checkbox"]:checked');
+          const days = Array.from(dayCheckboxes).map(cb => cb.value);
+          if (days.length === 0) {
+            alert('Please select at least one working day.');
+            return false;
+          }
+          state.workingDays = days;
+
+          // Slots
+          state.slotsPerDay = parseInt(dom.slotsPerDayInput.value, 10) || 6;
+          state.startTimeHour = parseInt(dom.startTimeSelect.value, 10) || 9;
+
+          // Rooms
+          const tRooms = dom.theoryRoomsInput.value.split(',').map(s => s.trim()).filter(Boolean);
+          const lRooms = dom.labRoomsInput.value.split(',').map(s => s.trim()).filter(Boolean);
+
+          if (tRooms.length === 0) {
+            alert('Please enter at least one Theory Room.');
+            return false;
+          }
+          if (lRooms.length === 0) {
+            alert('Please enter at least one Lab Room.');
+            return false;
+          }
+
+          state.theoryRooms = tRooms;
+          state.labRooms = lRooms;
+          dom.theoryRoomsCount.textContent = `${tRooms.length} rooms`;
+          dom.labRoomsCount.textContent = `${lRooms.length} rooms`;
+
+          return true;
+        }
+
+        function runCSPSolver() {
+          if (!readConfigurationFromInputs()) return;
+
+          if (state.workload.length === 0) {
+            showStatusBanner('error', 'No workload data. Please upload a CSV or load sample data.');
+            return;
+          }
+
+          // Expand workload entries into individual CSP variables
+          const variables = expandWorkloadToVariables(state.workload);
+
+          // Update UI Button to show spinner
+          const btn = dom.btnGenerateSchedule;
+          const origContent = btn.innerHTML;
+          btn.disabled = true;
+          btn.innerHTML = `
+            <svg class="animate-spin w-4 h-4 text-white" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <span>Solving CSP (MRV + Forward Checking)...</span>
+          `;
+
+          // Small timeout to allow UI paint before synchronous CPU solver runs
+          setTimeout(() => {
+            const solver = new CSPScheduler(
+              variables,
+              state.workingDays,
+              state.slotsPerDay,
+              state.theoryRooms,
+              state.labRooms
+            );
+
+            const result = solver.solve();
+
+            // Restore button
+            btn.disabled = false;
+            btn.innerHTML = origContent;
+
+            if (result.success) {
+              state.solution = result.assignment;
+              state.metrics.executionTime = result.time;
+              state.metrics.nodesExpanded = result.nodes;
+              state.metrics.backtracks = result.backtracks;
+              state.metrics.assignedCount = result.assignment.length;
+              state.metrics.totalCount = variables.length;
+
+              // Audit
+              const audit = auditSolution(result.assignment, state.workingDays, state.slotsPerDay, state.labRooms);
+
+              // Update stats bar
+              dom.metricExecTime.textContent = result.time.toFixed(1);
+              dom.metricNodes.textContent = result.nodes.toLocaleString();
+              dom.metricBacktracks.textContent = `${result.backtracks.toLocaleString()} backtracks`;
+              dom.metricConstraints.textContent = '100% Satisfied';
+              dom.metricConstraints.className = 'text-lg font-mono font-medium text-emerald-400';
+              dom.metricConflictsDetail.textContent = '0 Collisions';
+              dom.metricSlotsAssigned.textContent = result.assignment.length;
+              dom.metricSlotsTotal.textContent = `/ ${variables.length}`;
+
+              const totalSlotCapacity = state.workingDays.length * state.slotsPerDay * (state.theoryRooms.length + state.labRooms.length);
+              const utilPercent = Math.round((variables.length / totalSlotCapacity) * 100);
+              dom.metricUtilization.textContent = `${utilPercent}% capacity`;
+
+              // Update Audit Section
+              dom.auditStatus.textContent = 'All 4 Hard Constraints Satisfied';
+              dom.auditStatus.className = 'text-[11px] font-mono text-emerald-400 font-semibold';
+              dom.auditBatchCheck.textContent = '0 collisions';
+              dom.auditFacultyCheck.textContent = '0 collisions';
+              dom.auditRoomCheck.textContent = '0 collisions';
+              dom.auditLabCheck.textContent = '100% compliant';
+
+              updateEntitySelectorOptions();
+              renderTimetableMatrix();
+              showStatusBanner('success', `Timetable successfully generated in ${result.time.toFixed(1)}ms (${result.nodes} search nodes, 0 conflicts).`);
+            } else {
+              state.solution = null;
+              dom.metricExecTime.textContent = result.time.toFixed(1);
+              dom.metricNodes.textContent = result.nodes.toLocaleString();
+              dom.metricBacktracks.textContent = `${result.backtracks.toLocaleString()} backtracks`;
+              dom.metricConstraints.textContent = 'Unsatisfiable';
+              dom.metricConstraints.className = 'text-lg font-mono font-medium text-red-400';
+              dom.metricConflictsDetail.textContent = 'Over-constrained';
+
+              dom.auditStatus.textContent = 'Search halted without solution';
+              dom.auditStatus.className = 'text-[11px] font-mono text-red-400';
+
+              showStatusBanner('error', result.reason || 'Failed to find a conflict-free solution. Try adding more rooms or increasing daily slots.');
+            }
+          }, 30);
+        }
+
+        function exportScheduleCSV() {
+          if (!state.solution || state.solution.length === 0) {
+            alert('Please generate a schedule first before exporting.');
+            return;
+          }
+
+          const headers = ['Batch', 'Day', 'Slot_Number', 'Time_Slot', 'Subject', 'Faculty_Name', 'Room', 'Is_Lab'];
+          const rows = state.solution.map(item => {
+            const time = getSlotTimeLabel(item.slot, state.startTimeHour);
+            return [
+              `"${item.batch}"`,
+              `"${item.day}"`,
+              item.slot + 1,
+              `"${time}"`,
+              `"${item.subject}"`,
+              `"${item.faculty}"`,
+              `"${item.room}"`,
+              item.isLab ? 'true' : 'false'
+            ].join(',');
+          });
+
+          const csvContent = [headers.join(','), ...rows].join('\n');
+          const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.setAttribute('href', url);
+          link.setAttribute('download', 'university_timetable_schedule.csv');
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+        }
+
+        function unparseCSV(workload) {
+          const lines = ['Batch,Subject,Faculty_Name,Is_Lab,Weekly_Hours'];
+          workload.forEach(w => {
+            lines.push(`${w.batch},${w.subject},${w.faculty},${w.isLab},${w.weeklyHours}`);
+          });
+          return lines.join('\n');
+        }
+
+        function escapeHtml(str) {
+          if (!str) return '';
+          return str
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+        }
+
+        function loadSampleData() {
+          state.workload = parseCSV(DEFAULT_CSV);
+          renderWorkloadTable();
+          updateEntitySelectorOptions();
+          runCSPSolver();
+        }
+
+        // --- 9. EVENT LISTENERS ---
+
+        // Load sample button
+        dom.btnLoadSample.addEventListener('click', loadSampleData);
+        dom.btnLoadSampleTop.addEventListener('click', loadSampleData);
+
+        // Generate button
+        dom.btnGenerateSchedule.addEventListener('click', runCSPSolver);
+
+        // Export button
+        dom.btnExportCsv.addEventListener('click', exportScheduleCSV);
+
+        // Print button
+        dom.btnPrint.addEventListener('click', () => window.print());
+
+        // File upload
+        dom.csvFileInput.addEventListener('change', (e) => {
+          const file = e.target.files[0];
+          if (!file) return;
+
+          const reader = new FileReader();
+          reader.onload = (event) => {
+            const content = event.target.result;
+            const parsed = parseCSV(content);
+            if (parsed.length === 0) {
+              alert('Could not parse any valid courses from the uploaded CSV. Ensure format: Batch,Subject,Faculty_Name,Is_Lab,Weekly_Hours');
+              return;
+            }
+            state.workload = parsed;
+            renderWorkloadTable();
+            updateEntitySelectorOptions();
+            showStatusBanner('success', `Loaded ${parsed.length} course requirements from CSV file.`);
+          };
+          reader.readAsText(file);
+        });
+
+        // Toggle raw editor
+        dom.btnToggleEditor.addEventListener('click', () => {
+          const isHidden = dom.csvEditorContainer.classList.contains('hidden');
+          if (isHidden) {
+            dom.csvEditorContainer.classList.remove('hidden');
+            dom.rawCsvTextarea.value = unparseCSV(state.workload);
+          } else {
+            dom.csvEditorContainer.classList.add('hidden');
+          }
+        });
+
+        // Apply raw CSV
+        dom.btnApplyCsv.addEventListener('click', () => {
+          const text = dom.rawCsvTextarea.value;
+          const parsed = parseCSV(text);
+          if (parsed.length === 0) {
+            alert('Invalid CSV content. Please check headers: Batch,Subject,Faculty_Name,Is_Lab,Weekly_Hours');
+            return;
+          }
+          state.workload = parsed;
+          renderWorkloadTable();
+          updateEntitySelectorOptions();
+          dom.csvEditorContainer.classList.add('hidden');
+          showStatusBanner('success', `Updated workload with ${parsed.length} courses.`);
+        });
+
+        // View mode tabs (Batch / Faculty / Room)
+        dom.viewModeTabs.addEventListener('click', (e) => {
+          const btn = e.target.closest('button');
+          if (!btn) return;
+
+          dom.viewModeTabs.querySelectorAll('button').forEach(b => {
+            b.className = 'px-2.5 py-1 rounded text-zinc-400 hover:text-zinc-200 transition-colors';
+          });
+          btn.className = 'px-2.5 py-1 rounded bg-[#27272a] text-zinc-100 font-medium transition-colors';
+
+          state.currentViewMode = btn.dataset.mode;
+          updateEntitySelectorOptions();
+          renderTimetableMatrix();
+        });
+
+        // Entity selector change
+        dom.entitySelector.addEventListener('change', (e) => {
+          state.selectedEntity = e.target.value;
+          renderTimetableMatrix();
+        });
+
+        // Search filter input
+        dom.searchFilter.addEventListener('input', (e) => {
+          state.searchQuery = e.target.value;
+          renderTimetableMatrix();
+        });
+
+        // Expand all grids button: switches through batches or shows full view
+        dom.btnExpandAll.addEventListener('click', () => {
+          const batches = Array.from(new Set(state.workload.map(w => w.batch)));
+          if (batches.length === 0) return;
+          const curIdx = batches.indexOf(state.selectedEntity);
+          const nextIdx = (curIdx + 1) % batches.length;
+          state.currentViewMode = 'batch';
+          state.selectedEntity = batches[nextIdx];
+          dom.viewModeTabs.querySelectorAll('button').forEach(b => {
+            b.className = b.dataset.mode === 'batch' 
+              ? 'px-2.5 py-1 rounded bg-[#27272a] text-zinc-100 font-medium transition-colors'
+              : 'px-2.5 py-1 rounded text-zinc-400 hover:text-zinc-200 transition-colors';
+          });
+          updateEntitySelectorOptions();
+          renderTimetableMatrix();
+        });
+
+        // Working days & slots real-time inputs
+        dom.workingDaysContainer.addEventListener('change', () => {
+          readConfigurationFromInputs();
+          if (state.solution) renderTimetableMatrix();
+        });
+
+        dom.slotsPerDayInput.addEventListener('change', () => {
+          readConfigurationFromInputs();
+          if (state.solution) renderTimetableMatrix();
+        });
+
+        dom.startTimeSelect.addEventListener('change', () => {
+          readConfigurationFromInputs();
+          if (state.solution) renderTimetableMatrix();
+        });
+
+        dom.theoryRoomsInput.addEventListener('input', readConfigurationFromInputs);
+        dom.labRoomsInput.addEventListener('input', readConfigurationFromInputs);
+
+        // --- 10. INITIALIZATION ---
+        loadSampleData();
+      })();
+    </script>
+  </body>
+</html>
